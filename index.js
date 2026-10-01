@@ -247,10 +247,21 @@ function fillSummarySheet(sheet, rows) {
       const biayaCol = qtyCol + 1;
       const qtyCell = sheet.getCell(rowNum, qtyCol);
       const biayaCell = sheet.getCell(rowNum, biayaCol);
-      qtyCell.value = data[group].qty;
-      biayaCell.value = data[group].biaya;
+      const qty = data[group].qty;
+      const biaya = data[group].biaya;
+      qtyCell.value = qty;
+      biayaCell.value = biaya;
       qtyCell.numFmt = "#,##0.###";
       biayaCell.numFmt = "#,##0";
+      if (qty === 0) {
+        const redFill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FFFF0000" },
+        };
+        qtyCell.fill = redFill;
+        biayaCell.fill = redFill;
+      }
     });
   });
 }
