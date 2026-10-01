@@ -17,6 +17,12 @@ const GROUPS = [
   "Sparepart Press",
   "Bearing",
   "Pelumas",
+  "Belt",
+  "Hose",
+  "Electrode",
+  "Bolt",
+  "Chain",
+  "Cone",
   "Lain-Lain",
 ];
 
@@ -24,11 +30,17 @@ const GROUPS = [
 const GROUP_RULES = [
   { keywords: ["worm"], group: "Worm Screw" },
   { keywords: ["cage"], group: "Press Cage" },
-  { keywords: ["shaft"], group: "Shaft" },
-  { keywords: ["blade"], group: "Blade Digester" },
+  { keywords: ["shaft", "mending", "thrust", "cap:protection"], group: "Shaft" },
+  { keywords: ["blade", "digester"], group: "Blade Digester" },
   { keywords: ["gear"], group: "Gear" },
-  { keywords: ["bearing"], group: "Bearing" },
+  { keywords: ["bearing", "brg"], group: "Bearing" },
   { keywords: ["pelumas", "lube oil", "grease"], group: "Pelumas" },
+  { keywords: ["belt"], group: "Belt" },
+  { keywords: ["hose"], group: "Hose" },
+  { keywords: ["electrode"], group: "Electrode" },
+  { keywords: ["bolt", "nut", "baut"], group: "Bolt" },
+  { keywords: ["chain"], group: "Chain" },
+  { keywords: ["cone"], group: "Cone" },
   { keywords: ["press"], group: "Sparepart Press" },
 ];
 
