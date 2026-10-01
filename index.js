@@ -243,6 +243,15 @@ function fillSummarySheet(sheet, rows) {
   });
 }
 
+function moveSheetToFront(workbook, sheet) {
+  sheet.orderNo = 0;
+  workbook.worksheets
+    .filter((ws) => ws.id !== sheet.id)
+    .forEach((ws, i) => {
+      ws.orderNo = i + 1;
+    });
+}
+
 function getOrReplaceRekapSheet(workbook) {
   const existing = workbook.worksheets.find(
     (ws) => ws.name.trim().toLowerCase() === "rekap"
@@ -250,8 +259,9 @@ function getOrReplaceRekapSheet(workbook) {
   if (existing) {
     workbook.removeWorksheet(existing.id);
   }
-  // insert as first sheet so REKAP stays di depan seperti source
-  return workbook.addWorksheet("REKAP", { state: "visible" });
+  const rekap = workbook.addWorksheet("REKAP", { state: "visible" });
+  moveSheetToFront(workbook, rekap);
+  return rekap;
 }
 
 async function writeCombinedOutput(allRows, baseName) {
