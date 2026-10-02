@@ -3,7 +3,6 @@ const path = require("path");
 const ExcelJS = require("exceljs");
 
 const ROOT = __dirname;
-const DATA_DIR = path.join(ROOT, "data-dource");
 const RESULTS_DIR = path.join(ROOT, "results");
 const MASTER_PKS_PATH = path.join(ROOT, "master_pks.xlsx");
 
@@ -15,7 +14,7 @@ const RED_FILL = {
   fgColor: { argb: "FFFF0000" },
 };
 
-const GROUPS = [
+const PRESS_GROUPS = [
   "Worm Screw",
   "Press Cage",
   "Shaft",
@@ -34,7 +33,7 @@ const GROUPS = [
 ];
 
 // keywords: array of substrings (case-insensitive); first matching group wins
-const GROUP_RULES = [
+const PRESS_GROUP_RULES = [
   { keywords: ["worm"], group: "Worm Screw" },
   { keywords: ["cage"], group: "Press Cage" },
   { keywords: ["shaft", "mending", "thrust", "cap:protection"], group: "Shaft" },
@@ -51,6 +50,76 @@ const GROUP_RULES = [
   { keywords: ["press"], group: "Sparepart Press" },
 ];
 
+const RAIL_TRACK_GROUPS = ["Rope", "Wire Rope", "Lain-Lain"];
+
+const ROMAN_REGIONAL = {
+  i: 1,
+  ii: 2,
+  iii: 3,
+  iv: 4,
+  v: 5,
+  vi: 6,
+  vii: 7,
+  viii: 8,
+  ix: 9,
+  x: 10,
+};
+
+/** Runtime mode — di-set di main() dari CLI args. */
+let DATA_DIR = path.join(ROOT, "data-dource");
+let GROUPS = PRESS_GROUPS;
+let GROUP_RULES = PRESS_GROUP_RULES;
+let OUTPUT_PREFIX = "hasil_mapping";
+let MODE_NAME = "press";
+
+function configureMode(isRailTrack) {
+  if (isRailTrack) {
+    MODE_NAME = "rail-track";
+    DATA_DIR = path.join(ROOT, "rail-track-data-source");
+    GROUPS = RAIL_TRACK_GROUPS;
+    GROUP_RULES = null;
+    OUTPUT_PREFIX = "hasil_mapping_rail_track";
+  } else {
+    MODE_NAME = "press";
+    DATA_DIR = path.join(ROOT, "data-dource");
+    GROUPS = PRESS_GROUPS;
+    GROUP_RULES = PRESS_GROUP_RULES;
+    OUTPUT_PREFIX = "hasil_mapping";
+  }
+}
+
+function assignGroup(materialName) {
+  const lower = String(materialName || "").toLowerCase();
+
+  if (MODE_NAME === "rail-track") {
+    // Wire Rope dulu — supaya tidak tertangkap rule Rope
+    if (
+      lower.includes("wire rope") ||
+      lower.includes("rope,wire") ||
+      lower.includes("rope wire") ||
+      lower.includes("wire,rope") ||
+      lower.includes("staal drad") ||
+      lower.includes("staal draad") ||
+      lower.includes("staal drat")
+    ) {
+      return "Wire Rope";
+    }
+    if (
+      /\brope\b/.test(lower) ||
+      lower.includes("tali") ||
+      lower.includes("nilon")
+    ) {
+      return "Rope";
+    }
+    return "Lain-Lain";
+  }
+
+  for (const rule of GROUP_RULES) {
+    if (rule.keywords.some((kw) => lower.includes(kw))) return rule.group;
+  }
+  return "Lain-Lain";
+}
+
 const MONTHS_ID = [
   "Januari",
   "Februari",
@@ -65,14 +134,6 @@ const MONTHS_ID = [
   "November",
   "Desember",
 ];
-
-function assignGroup(materialName) {
-  const lower = String(materialName || "").toLowerCase();
-  for (const rule of GROUP_RULES) {
-    if (rule.keywords.some((kw) => lower.includes(kw))) return rule.group;
-  }
-  return "Lain-Lain";
-}
 
 function normalizeGl(value) {
   if (value === null || value === undefined || value === "") return null;
@@ -144,7 +205,7 @@ function wibTimestampBase() {
   const year = now.getFullYear();
   const hour = String(now.getHours()).padStart(2, "0");
   const minute = String(now.getMinutes()).padStart(2, "0");
-  return `hasil_mapping_${day}_${month}_${year}_${hour}.${minute}_WIB`;
+  return `${OUTPUT_PREFIX}_${day}_${month}_${year}_${hour}.${minute}_WIB`;
 }
 
 function listWorkbooks() {
@@ -376,8 +437,14 @@ async function loadMasterPks() {
 }
 
 function regionalIdFromFilename(filename) {
-  const m = String(filename).match(/regional\s*(\d+)/i);
-  return m ? Number(m[1]) : null;
+  const arabic = String(filename).match(/regional\s*(\d+)/i);
+  if (arabic) return Number(arabic[1]);
+  const roman = String(filename).match(/regional\s*([ivxlcdm]+)/i);
+  if (roman) {
+    const n = ROMAN_REGIONAL[roman[1].toLowerCase()];
+    return n != null ? n : null;
+  }
+  return null;
 }
 
 function buildDisplayRows(rows, masterList) {
@@ -605,15 +672,22 @@ async function writePerSourceOutputs(bySource, baseName, masterList) {
 }
 
 async function main() {
+  const isRailTrack = process.argv.includes("--rail-track");
+  configureMode(isRailTrack);
+
   if (!fs.existsSync(RESULTS_DIR)) {
     fs.mkdirSync(RESULTS_DIR, { recursive: true });
   }
+
+  console.log(`Mode: ${MODE_NAME}`);
+  console.log(`Sumber data: ${DATA_DIR}`);
+  console.log(`Groups: ${GROUPS.join(", ")}`);
 
   console.log("Membaca master_pks.xlsx ...");
   const masterList = await loadMasterPks();
   console.log(`Master PKS: ${masterList.length} baris.`);
 
-  console.log("Membaca workbook dari data-dource/ ...");
+  console.log("Membaca workbook ...");
   const bySource = await extractAllBySource();
   const allRows = bySource.flatMap((s) => s.rows);
   console.log(

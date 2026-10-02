@@ -4,7 +4,8 @@
   "description": "Extract and group PKS press station materials from GL accounts",
   "main": "index.js",
   "scripts": {
-    "start": "node ."
+    "start": "node .",
+    "rail-track": "node . --rail-track"
   },
   "dependencies": {
     "exceljs": "^4.4.0"
